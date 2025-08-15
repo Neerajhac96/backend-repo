@@ -1,10 +1,20 @@
 const jwt = require("jsonwebtoken");
 
 function verifyToken(req, res, next) {
-  const token = req.headers["authorization"]; // Token from frontend
+  // accept header case-insensitively
+  const authHeader = req.headers["authorization"] || req.headers["Authorization"];
+  let token = null;
+
+  if (authHeader && typeof authHeader === "string") {
+    // If frontend uses "Bearer <token>", extract the token part
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else {
+      token = authHeader;
+    }
+  }
 
   if (!token) {
-    // If request from browser (HTML), redirect:
     if (req.accepts("html")) {
       return res.redirect("/auth/login.html");
     }
@@ -14,7 +24,7 @@ function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
-    next(); // Proceed
+    next();
   } catch (err) {
     if (req.accepts("html")) {
       return res.redirect("/auth/login.html");
